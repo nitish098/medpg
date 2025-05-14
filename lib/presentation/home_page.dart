@@ -400,7 +400,8 @@ class BuildBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     
-    final authProvider = Provider.of<UserProvider>(context, listen: false);
+    final authProvider = Provider.of<UserProvider>(context).userData;
+    final name = authProvider?.displayName ?? "User";
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -409,7 +410,7 @@ class BuildBody extends StatelessWidget {
           children: [
             // Welcome section
              Text(
-              'Welcome, ${authProvider.userData?.displayName}',
+              'Welcome, ${name}',
               style:const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,

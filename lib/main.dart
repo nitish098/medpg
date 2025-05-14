@@ -9,7 +9,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => UserProvider(),
+          create: (_) => UserProvider()..loadUserFromPrefs(),
         )
       ],
       child: const MyApp(),
