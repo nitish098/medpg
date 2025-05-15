@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:medpg/presentation/models/recommended_home_page.dart';
+import 'package:medpg/presentation/models/recommended.dart';
 import 'package:provider/provider.dart';
 
 import '../view_model/user_provider.dart';
@@ -9,10 +9,13 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+     final authProvider = Provider.of<UserProvider>(context).userData;
+     final name = authProvider?.displayName ?? "User";
+     final examName = authProvider?.targetExam ?? "exam";
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F9),
       appBar: _buildAppBar(),
-      body: BuildBody(),
+      body: _buildBody(name,examName),
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
@@ -107,6 +110,48 @@ class DashboardScreen extends StatelessWidget {
         ),
         const SizedBox(width: 16),
       ],
+    );
+  }
+
+  Widget _buildBody(String displayName, String targetedExam) {
+   
+    
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome section
+             Text(
+              'Welcome, $displayName',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+             Text(
+              'Preparing for $targetedExam',
+              style: const TextStyle(
+                fontSize: 18,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Stats grid
+            _buildStatsGrid(),
+            const SizedBox(height: 24),
+
+            // Set Smarter Goals card
+            _buildGoalsCard(),
+            const SizedBox(height: 24),
+            _buildRecommendedGoals()
+          ],
+        ),
+      ),
     );
   }
 
@@ -387,56 +432,6 @@ class DashboardScreen extends StatelessWidget {
             label: 'Revise',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class BuildBody extends StatelessWidget {
-  const BuildBody({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    
-    final authProvider = Provider.of<UserProvider>(context).userData;
-    final name = authProvider?.displayName ?? "User";
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome section
-             Text(
-              'Welcome, ${name}',
-              style:const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Preparing for FMGE',
-              style: TextStyle(
-                fontSize: 18,
-                color: Color(0xFF6B7280),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Stats grid
-            // _buildStatsGrid(),
-            const SizedBox(height: 24),
-
-            // Set Smarter Goals card
-            // _buildGoalsCard(),
-            const SizedBox(height: 24),
-            // _buildRecommendedGoals()
-          ],
-        ),
       ),
     );
   }

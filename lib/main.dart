@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:medpg/presentation/splash_screen.dart';
 import 'package:medpg/view_model/user_provider.dart';
 import 'package:provider/provider.dart';
 
-import 'presentation/login/login_page.dart';
 
 void main() {
   runApp(
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF5F7F9),
         fontFamily: 'Roboto',
       ),
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }
