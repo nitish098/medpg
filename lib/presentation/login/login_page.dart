@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:medpg/view_model/user_provider.dart';
 import 'package:provider/provider.dart';
 
-import '../home_page.dart';
+import '../home/home_page.dart';
 import 'build_feature_section.dart';
 import 'build_header.dart';
 import 'build_welcome.dart';

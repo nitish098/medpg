@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:medpg/presentation/home_page.dart';
+import 'package:medpg/presentation/home/home_page.dart';
 import 'package:medpg/presentation/login/login_page.dart';
 import 'package:medpg/view_model/user_provider.dart';
 import 'package:provider/provider.dart';

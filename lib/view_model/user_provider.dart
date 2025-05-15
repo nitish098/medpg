@@ -2,13 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
+import 'package:medpg/presentation/models/leader_board.dart';
 import 'package:medpg/presentation/models/login_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:medpg/view_model/user_service.dart';
 
 class UserProvider extends ChangeNotifier {
-  // final UserService _userService = UserService();
-
   UserClass? _userData;
   bool _isLoading = false;
   String? _errorMessage;
@@ -48,13 +46,34 @@ class UserProvider extends ChangeNotifier {
       _isLoading = false;
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = jsonDecode(response.body); //extract the user information
         _userData = UserClass.fromJson(data["user"]);
-        
-        final prefs = await SharedPreferences.getInstance();
+
+        final cookie = response.headers['set-cookie']; //extract the connect sid
+        final sidMatch =
+            RegExp(r'connect\.sid=([^;]+)').firstMatch(cookie ?? '');
+        final connectSid = sidMatch?.group(1);
+        print("nitish $connectSid");
+        if (connectSid == null) {
+          _errorMessage = "Session ID missiing";
+          notifyListeners();
+          return false;
+        }
+
+        final prefs =
+            await SharedPreferences.getInstance(); //Strore to the local data
         prefs.setString("userPrefs", jsonEncode(data["user"]));
+        prefs.setString("connectSid", connectSid);
         prefs.setString("username", username);
-        prefs.setString("password",password);
+        prefs.setString("password", password);
+
+        final csrfSuccess = await _fetchCsrfToken(connectSid);
+
+        if (csrfSuccess == false) {
+          _errorMessage = "No Csrf token found";
+          notifyListeners();
+          return false;
+        }
 
         notifyListeners();
         return true;
@@ -89,7 +108,86 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> logOut()async{
+  Future<bool> _fetchCsrfToken(String connectSid) async {
+    const url = "https://themedico.app/api/csrf-token";
+    final csrfResponce = await http.get(
+      Uri.parse(url),
+      headers: {'Cookie': "connect.sid=$connectSid"},
+    );
+    print("nitisshhhhhhhhhhhhhhhhh");
+    if (csrfResponce.statusCode == 200) {
+      // print("nitisshhhhhhhhhhhhhhhhh $csrfResponce");
+      final csfrData = jsonDecode(csrfResponce.body);
+      final csrfToken = csfrData['csrfToken'];
+      print("nitish $csrfToken");
+
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('csrfToken', csrfToken);
+
+      return true;
+    }
+    return false;
+  }
+
+  Future<Map<String, dynamic>?> progressGrowth() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sid = prefs.getString('connectSid');
+    final csrf = prefs.getString('csrfToken');
+    print("nitish $sid");
+    print("nitish $csrf");
+    if (sid == null || csrf == null) return null;
+    print("nitisshhhhhhhhhhhhhhhhh fetc dfdf");
+    final url = Uri.parse('https://themedico.app/api/progress/growth');
+    print("nitish $url");
+    final growthResponse = await http.get(
+      url,
+      headers: {
+        'Cookie': 'connect.sid=$sid',
+        'X-CSRF-Token': csrf,
+      },
+    );
+    if (growthResponse.statusCode == 200) {
+      final growthdata = jsonDecode(growthResponse.body);
+      return {
+        'questionsGrowth': growthdata['questionsGrowth'],
+        'accuracyGrowth': growthdata['accuracyGrowth'],
+        'sessionsGrowth': growthdata['sessionsGrowth'],
+      };
+    }
+    return null;
+  }
+
+  Future<List<LeaderboardEntry>> fetchLeaderboard({
+    required String category,
+    required String period,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sid = prefs.getString('connectSid');
+    final csrf = prefs.getString('csrfToken');
+    print("nitish $sid");
+    print("nitish $csrf");
+    if (sid == null || csrf == null) return [];
+    print("nitisshhhhhhhhhhhhhhhhh fetc dfdf");
+    final url = Uri.parse(
+        'https://themedico.app/api/leaderboard?period=$period&category=$category&limit=10&synthetic=true');
+    print("nitish $url");
+    final leaderBoardResponse = await http.get(
+      url,
+      headers: {
+        'Cookie': 'connect.sid=$sid',
+        'X-CSRF-Token': csrf,
+      },
+    );
+
+    if (leaderBoardResponse.statusCode == 200) {
+      final leaderData = jsonDecode(leaderBoardResponse.body);
+      final leaderBoard = leaderData['entries'] as List;
+      return leaderBoard.map((e) => LeaderboardEntry.fromJson(e)).toList();
+    }
+    return [];
+  }
+
+  Future<void> logOut() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     _userData = null;
