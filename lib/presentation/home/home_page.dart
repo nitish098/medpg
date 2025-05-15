@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:medpg/presentation/home/leader_bord_screen.dart';
 import 'package:medpg/presentation/login/login_page.dart';
-import 'package:medpg/presentation/models/recommended.dart';
 import 'package:provider/provider.dart';
 
 import '../../view_model/user_provider.dart';
+import '../models/leader_board.dart';
+import 'bottom_nav.dart';
+import 'goals_card.dart';
+import 'recommanded_goals.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -14,26 +16,109 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  double? questionsGrowth;
-  double? accuracyGrowth;
-  double? sessionsGrowth;
+  List<LeaderboardEntry> leaderboard = [];
 
-@override
+  String selectedCategory = 'questions_answered';
+  String selectedPeriod = 'weekly';
+
+  final Map<String, String> categoryLabels = {
+    'questions_answered': 'Questions',
+    'accuracy': 'Accuracy',
+    'streak': 'Streak',
+    'study_time': 'Study Time',
+    'mastery': 'Mastery',
+  };
+
+  final Map<String, String> periodLabels = {
+    'weekly': 'Weekly',
+    'monthly': 'Monthly',
+    'all_time': 'All Time',
+  };
+  @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    _loadGrowthData();
+    _loadLeaderboard();
   }
-  Future<void> _loadGrowthData() async {
-    final auth = Provider.of<UserProvider>(context, listen: false);
-    final growth = await auth.progressGrowth();
-    if (growth != null) {
-      setState(() {
-        questionsGrowth = growth['questionsGrowth']?.toDouble();
-        accuracyGrowth = growth['accuracyGrowth']?.toDouble();
-        sessionsGrowth = growth['sessionsGrowth']?.toDouble();
-      });
-    }
+
+  Future<void> _loadLeaderboard() async {
+    final authProvider = Provider.of<UserProvider>(context, listen: false);
+    final entries = await authProvider.fetchLeaderboard(
+      category: selectedCategory,
+      period: selectedPeriod,
+    );
+    setState(() => leaderboard = entries);
+  }
+
+  Widget _buildLeaderboardTile(LeaderboardEntry entry) {
+    return Row(
+      children: [
+        Text('${entry.rank}',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(width: 8),
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: const Color(0xFFE5EAF1),
+          child: Text(entry.initials,
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(entry.displayName, overflow: TextOverflow.ellipsis),
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(entry.score.toString(),
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('${entry.percentile}th percentile',
+                style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown({
+    required String value,
+    required Map<String, String> options,
+    required void Function(String) onSelect,
+  }) {
+    return PopupMenuButton<String>(
+      onSelected: (val) {
+        onSelect(val);
+        _loadLeaderboard();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE4E7EB)),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          children: [
+            Text(options[value]!),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+      itemBuilder: (context) {
+        return options.entries.map((entry) {
+          return PopupMenuItem<String>(
+            value: entry.key,
+            child: Row(
+              children: [
+                if (value == entry.key)
+                  const Icon(Icons.check, color: Colors.blue, size: 18)
+                else
+                  const SizedBox(width: 18),
+                const SizedBox(width: 8),
+                Text(entry.value),
+              ],
+            ),
+          );
+        }).toList();
+      },
+    );
   }
 
   @override
@@ -41,26 +126,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final authProvider = Provider.of<UserProvider>(context).userData;
     final name = authProvider?.displayName ?? "User";
     final examName = authProvider?.targetExam ?? "exam";
-     final initialName = name.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase();
+    final initialName =
+        name.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase();
     //  final response = await authProvider.fetchLeaderboard();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F9),
       appBar: _buildAppBar(initialName),
       body: _buildBody(name, examName),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: const BuildBottamNavigation(),
       floatingActionButton: Row(
         children: [
-          FloatingActionButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => LeaderboardScreen()));
-            },
-          ),
+          // FloatingActionButton(
+          //   onPressed: () {
+          //     Navigator.of(context).push(MaterialPageRoute(
+          //         builder: (context) => const LeaderboardScreen()));
+          //   },
+          // ),
           FloatingActionButton(
             onPressed: () {
               // Provider.of<UserProvider>(context).logOut();
-              Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=> LoginScreen()));
-            
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const LoginScreen(),
+                ),
+              );
             },
           )
         ],
@@ -108,35 +197,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       actions: [
-        const Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(
-              Icons.notifications_outlined,
-              color: Colors.white,
-              size: 26,
-            ),
-            // Positioned(
-            //   top: 10,
-            //   right: 0,
-            //   child: Container(
-            //     padding: const EdgeInsets.all(4),
-            //     decoration: const BoxDecoration(
-            //       color: Colors.red,
-            //       shape: BoxShape.circle,
-            //     ),
-            //     child: const Text(
-            //       '15',
-            //       style: TextStyle(
-            //         color: Colors.white,
-            //         fontSize: 10,
-            //         fontWeight: FontWeight.bold,
-            //       ),
-            //     ),
-            //   ),
-            // ),
-          ],
-        ),
         const SizedBox(width: 16),
         Container(
           width: 40,
@@ -145,7 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: const Color(0xFF3D93D0),
             borderRadius: BorderRadius.circular(20),
           ),
-          child:  Center(
+          child: Center(
             child: Text(
               initialName,
               style: const TextStyle(
@@ -188,20 +248,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 24),
 
             // Stats grid
-            // _buildStatsGrid(),
+            _buildStatsGrid(),
             const SizedBox(height: 24),
 
             // Set Smarter Goals card
-            _buildGoalsCard(),
+            const BuildGoalsCard(),
             const SizedBox(height: 24),
-            _buildRecommendedGoals()
+
+            // const BuildRecommendedGoals(),
+
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.emoji_events),
+                          SizedBox(width: 8),
+                          Text('Leaderboard',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _buildDropdown(
+                            value: selectedCategory,
+                            options: categoryLabels,
+                            onSelect: (val) =>
+                                setState(() => selectedCategory = val),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildDropdown(
+                            value: selectedPeriod,
+                            options: periodLabels,
+                            onSelect: (val) =>
+                                setState(() => selectedPeriod = val),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 300,
+                        child: ListView.separated(
+                          itemCount: leaderboard.length,
+                          itemBuilder: (_, index) =>
+                              _buildLeaderboardTile(leaderboard[index]),
+                          separatorBuilder: (_, __) =>
+                              const Divider(height: 16),
+                        ),
+                      ),
+                      const Divider(),
+                      // const ListTile(
+                      //   dense: true,
+                      //   title: Text('Your rank: 396'),
+                      //   subtitle: Text('Percentile: 28'),
+                      //   trailing: Text('Your score: 38'),
+                      // ),
+                      // const SizedBox(height: 10),
+                      // TextButton.icon(
+                      //   onPressed: () {},
+                      //   icon: const Icon(Icons.bar_chart),
+                      //   label: const Text('View Full Leaderboard'),
+                      // ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // const LeaderboardScreen(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatsGrid(String question, String accuracy, String session) {
+  Widget _buildStatsGrid() {
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 16,
@@ -212,19 +341,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // Questions Stats
         _buildStatCard(
           title: 'Questions',
-          value: question,
-          indicator: _buildPercentageIndicator(00, true),
+          value: '--',
+          indicator:
+              const BuildPercentageIndicator(percentage: 00, increase: true),
         ),
         // Accuracy Stats
         _buildStatCard(
           title: 'Accuracy',
-          value: accuracy,
+          value: '--%',
         ),
         // Sessions Stats
         _buildStatCard(
           title: 'Sessions',
-          value: session,
-          indicator: _buildPercentageIndicator(00, true),
+          value: '--',
+          indicator:
+              const BuildPercentageIndicator(percentage: 00, increase: true),
         ),
         // Strong Subject Stats
         _buildStatCard(
@@ -291,178 +422,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPercentageIndicator(int percentage, bool increase) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFD1FAE5),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.arrow_upward,
-            color: Color(0xFF059669),
-            size: 14,
-          ),
-          const SizedBox(width: 2),
-          Text(
-            '$percentage%',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF059669),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendedGoals() {
-    return Column(
-      children:
-          getRecommendedTiles.map((e) => RecommendedTiles(topic: e)).toList(),
-    );
-  }
-
-  // Widget _buildRecommendedTiles() {
-  Widget _buildGoalsCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.track_changes,
-                    color: Colors.red,
-                    size: 24,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Set Smarter Goals',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Let AI help you set and track achievable study goals based on your learning patterns.',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF6B7280),
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0074BD),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Set AI Goals',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Colors.white,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: 0,
-        selectedItemColor: const Color(0xFF0074BD),
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Practice',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description),
-            label: 'Mocks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Progress',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: 'Revise',
-          ),
         ],
       ),
     );

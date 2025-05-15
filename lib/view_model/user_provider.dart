@@ -7,6 +7,7 @@ import 'package:medpg/presentation/models/login_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProvider extends ChangeNotifier {
+
   UserClass? _userData;
   bool _isLoading = false;
   String? _errorMessage;
@@ -128,34 +129,7 @@ class UserProvider extends ChangeNotifier {
     }
     return false;
   }
-
-  Future<Map<String, dynamic>?> progressGrowth() async {
-    final prefs = await SharedPreferences.getInstance();
-    final sid = prefs.getString('connectSid');
-    final csrf = prefs.getString('csrfToken');
-    print("nitish $sid");
-    print("nitish $csrf");
-    if (sid == null || csrf == null) return null;
-    print("nitisshhhhhhhhhhhhhhhhh fetc dfdf");
-    final url = Uri.parse('https://themedico.app/api/progress/growth');
-    print("nitish $url");
-    final growthResponse = await http.get(
-      url,
-      headers: {
-        'Cookie': 'connect.sid=$sid',
-        'X-CSRF-Token': csrf,
-      },
-    );
-    if (growthResponse.statusCode == 200) {
-      final growthdata = jsonDecode(growthResponse.body);
-      return {
-        'questionsGrowth': growthdata['questionsGrowth'],
-        'accuracyGrowth': growthdata['accuracyGrowth'],
-        'sessionsGrowth': growthdata['sessionsGrowth'],
-      };
-    }
-    return null;
-  }
+  
 
   Future<List<LeaderboardEntry>> fetchLeaderboard({
     required String category,

@@ -117,7 +117,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Leaderboard")),
-      body: Padding(
+      body: 
+      Padding(
         padding: const EdgeInsets.all(16),
         child: Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
